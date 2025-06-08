@@ -68,6 +68,7 @@ base64 = "0.22.1"
 getrandom = "0.3.2"
 tokio-tungstenite = "0.26.2"
 futures = "0.3"
+futures-util = "0.3"
 sys-locale = "0.3.2"
 async-trait = "0.1.88"
 mihomo_api = { path = "src_crates/crate_mihomo_api" }
@@ -103,6 +104,14 @@ strip = true
 
 [profile.dev]
 incremental = true
+# 增加编译单元以启用并行编译
+codegen-units = 256
+# 禁用优化以加快编译速度
+opt-level = 0
+# 启用调试信息但减少详细程度
+debug = 1
+# 减少 LLVM 优化
+lto = false
 
 [profile.fast-release]
 inherits = "release" # 继承 release 的配置

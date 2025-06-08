@@ -14,6 +14,7 @@ import { BaseEmpty } from "../base";
 import { useRenderList } from "./use-render-list";
 import { ProxyRender } from "./proxy-render";
 import delayManager from "@/services/delay";
+import speedManager from "@/services/speed";
 import { useTranslation } from "react-i18next";
 import { ScrollTopButton } from "../layout/scroll-top-button";
 import { Box, styled } from "@mui/material";
@@ -363,6 +364,32 @@ export const ProxyGroups = (props: Props) => {
     },
   );
 
+  // 测全部下载速度
+  const handleCheckSpeed = useLockFn(async (groupName: string) => {
+    console.log(`[ProxyGroups] 开始测试所有下载速度，组: ${groupName}`);
+
+    const proxies = renderList
+      .filter(
+        (e) => e.group?.name === groupName && (e.type === 2 || e.type === 4),
+      )
+      .flatMap((e) => e.proxyCol || e.proxy!)
+      .filter(Boolean);
+
+    console.log(`[ProxyGroups] 找到代理数量: ${proxies.length}`);
+
+    const names = proxies.map((p) => p!.name);
+    console.log(`[ProxyGroups] 需要测试下载速度的代理数量: ${names.length}`);
+
+    try {
+      await speedManager.checkGroupSpeed(groupName, names);
+      console.log(`[ProxyGroups] 下载速度测试完成，组: ${groupName}`);
+    } catch (error) {
+      console.error(`[ProxyGroups] 下载速度测试出错，组: ${groupName}`, error);
+    }
+
+    onProxies();
+  });
+
   // 测全部延迟
   const handleCheckAll = useLockFn(async (groupName: string) => {
     console.log(`[ProxyGroups] 开始测试所有延迟，组: ${groupName}`);
@@ -395,15 +422,15 @@ export const ProxyGroups = (props: Props) => {
     console.log(`[ProxyGroups] 测试URL: ${url}, 超时: ${timeout}ms`);
 
     try {
-      await Promise.race([
-        delayManager.checkListDelay(names, groupName, timeout),
+    await Promise.race([
+      delayManager.checkListDelay(names, groupName, timeout),
         getGroupProxyDelays(groupName, url, timeout).then((result) => {
           console.log(
             `[ProxyGroups] getGroupProxyDelays返回结果数量:`,
             Object.keys(result || {}).length,
           );
         }), // 查询group delays 将清除fixed(不关注调用结果)
-      ]);
+    ]);
       console.log(`[ProxyGroups] 延迟测试完成，组: ${groupName}`);
     } catch (error) {
       console.error(`[ProxyGroups] 延迟测试出错，组: ${groupName}`, error);
@@ -502,10 +529,10 @@ export const ProxyGroups = (props: Props) => {
     <div
       style={{ position: "relative", height: "100%", willChange: "transform" }}
     >
-      <Virtuoso
-        ref={virtuosoRef}
+    <Virtuoso
+      ref={virtuosoRef}
         style={{ height: "calc(100% - 14px)" }}
-        totalCount={renderList.length}
+      totalCount={renderList.length}
         increaseViewportBy={{ top: 200, bottom: 200 }}
         overscan={150}
         defaultItemHeight={56}
@@ -518,18 +545,19 @@ export const ProxyGroups = (props: Props) => {
         // 添加平滑滚动设置
         initialScrollTop={scrollPositionRef.current[mode]}
         computeItemKey={(index) => renderList[index].key}
-        itemContent={(index) => (
-          <ProxyRender
-            key={renderList[index].key}
-            item={renderList[index]}
-            indent={mode === "rule" || mode === "script"}
-            onLocation={handleLocation}
-            onCheckAll={handleCheckAll}
-            onHeadState={onHeadState}
-            onChangeProxy={handleChangeProxy}
-          />
-        )}
-      />
+      itemContent={(index) => (
+        <ProxyRender
+          key={renderList[index].key}
+          item={renderList[index]}
+          indent={mode === "rule" || mode === "script"}
+          onLocation={handleLocation}
+          onCheckAll={handleCheckAll}
+            onCheckSpeed={handleCheckSpeed}
+          onHeadState={onHeadState}
+          onChangeProxy={handleChangeProxy}
+        />
+      )}
+    />
       <ScrollTopButton show={showScrollTop} onClick={scrollToTop} />
 
       <AlphabetSelector ref={alphabetSelectorRef} style={{ maxHeight }}>

@@ -30,13 +30,14 @@ interface RenderProps {
   indent: boolean;
   onLocation: (group: IRenderItem["group"]) => void;
   onCheckAll: (groupName: string) => void;
+  onCheckSpeed: (groupName: string) => void;
   onHeadState: (groupName: string, patch: Partial<HeadState>) => void;
   onChangeProxy: (group: IRenderItem["group"], proxy: IRenderItem["proxy"] & { name: string }) => void;
 }
 
 export const ProxyRender = (props: RenderProps) => {
   const { t } = useTranslation();
-  const { indent, item, onLocation, onCheckAll, onHeadState, onChangeProxy } =
+  const { indent, item, onLocation, onCheckAll, onCheckSpeed, onHeadState, onChangeProxy } =
     props;
   const { type, group, headState, proxy, proxyCol } = item;
   const { verge } = useVerge();
@@ -123,7 +124,7 @@ export const ProxyRender = (props: RenderProps) => {
           slotProps={{
             secondary: {
               component: "div",
-              sx: { display: "flex", alignItems: "center", color: "#ccc" },
+            sx: { display: "flex", alignItems: "center", color: "#ccc" },
             },
           }}
         />
@@ -136,10 +137,10 @@ export const ProxyRender = (props: RenderProps) => {
                 mr: 1, 
                 backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
                 color: (theme) => theme.palette.primary.main,
-              }} 
-            />
+          }}
+        />
           </Tooltip>
-          {headState?.open ? <ExpandLessRounded /> : <ExpandMoreRounded />}
+        {headState?.open ? <ExpandLessRounded /> : <ExpandMoreRounded />}
         </Box>
       </ListItemButton>
     );
@@ -154,6 +155,7 @@ export const ProxyRender = (props: RenderProps) => {
         headState={headState!}
         onLocation={() => onLocation(group)}
         onCheckDelay={() => onCheckAll(group.name)}
+        onCheckSpeed={() => onCheckSpeed(group.name)}
         onHeadState={(p) => onHeadState(group.name, p)}
       />
     );

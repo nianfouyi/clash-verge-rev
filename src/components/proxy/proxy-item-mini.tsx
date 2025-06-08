@@ -4,6 +4,7 @@ import { CheckCircleOutlineRounded } from "@mui/icons-material";
 import { alpha, Box, ListItemButton, styled, Typography } from "@mui/material";
 import { BaseLoading } from "@/components/base";
 import delayManager from "@/services/delay";
+import speedManager from "@/services/speed";
 import { useVerge } from "@/hooks/use-verge";
 import { useTranslation } from "react-i18next";
 
@@ -26,27 +27,57 @@ export const ProxyItemMini = (props: Props) => {
   // -1/<=0 为 不显示
   // -2 为 loading
   const [delay, setDelay] = useState(-1);
+  const [speed, setSpeed] = useState(-1);
   const { verge } = useVerge();
   const timeout = verge?.default_latency_timeout || 10000;
 
   useEffect(() => {
     if (isPreset) return;
+    
+    // 延迟监听器
     delayManager.setListener(proxy.name, group.name, setDelay);
+    
+    // 速度监听器 - 使用专门的item监听器
+    speedManager.setItemListener(proxy.name, group.name, setSpeed);
 
     return () => {
       delayManager.removeListener(proxy.name, group.name);
+      speedManager.removeItemListener(proxy.name, group.name);
     };
   }, [proxy.name, group.name]);
 
   useEffect(() => {
     if (!proxy) return;
     setDelay(delayManager.getDelayFix(proxy, group.name));
-  }, [proxy]);
+    setSpeed(speedManager.getSpeedFix(proxy, group.name));
+  }, [proxy, group.name]);
 
   const onDelay = useLockFn(async () => {
     setDelay(-2);
     setDelay(await delayManager.checkDelay(proxy.name, group.name, timeout));
   });
+
+  const onSpeed = useLockFn(async () => {
+    // SpeedManager 会自动处理加载状态和结果更新
+    await speedManager.checkDownloadSpeed(group.name, proxy.name);
+  });
+
+  // 格式化速度显示
+  const formatSpeed = (speed: number): string => {
+    if (speed <= 0) return "Error";
+    if (speed < 1024) return `${speed}B/s`;
+    if (speed < 1024 * 1024) return `${(speed / 1024).toFixed(1)}K/s`;
+    if (speed < 1024 * 1024 * 1024) return `${(speed / (1024 * 1024)).toFixed(1)}M/s`;
+    return `${(speed / (1024 * 1024 * 1024)).toFixed(1)}G/s`;
+  };
+
+  // 速度颜色
+  const getSpeedColor = (speed: number): string => {
+    if (speed <= 0) return "error";
+    if (speed < 1024 * 1024) return "warning"; // < 1MB/s
+    if (speed < 10 * 1024 * 1024) return "info"; // 1-10MB/s
+    return "success"; // > 10MB/s
+  };
 
   return (
     <ListItemButton
@@ -69,7 +100,9 @@ export const ProxyItemMini = (props: Props) => {
 
           return {
             "&:hover .the-check": { display: !showDelay ? "block" : "none" },
+            "&:hover .the-speed-check": { display: speed <= 0 ? "block" : "none" },
             "&:hover .the-delay": { display: showDelay ? "block" : "none" },
+            "&:hover .the-speed": { display: speed > 0 ? "block" : "none" },
             "&:hover .the-icon": { display: "none" },
             "& .the-pin, & .the-unpin": {
               position: "absolute",
@@ -176,48 +209,97 @@ export const ProxyItemMini = (props: Props) => {
       <Box
         sx={{ ml: 0.5, color: "primary.main", display: isPreset ? "none" : "" }}
       >
-        {delay === -2 && (
+        {(delay === -2 || speed === -2) && (
           <Widget>
             <BaseLoading />
           </Widget>
         )}
-        {!proxy.provider && delay !== -2 && (
+        {!proxy.provider && delay !== -2 && speed !== -2 && (
           // provider的节点不支持检测
-          <Widget
-            className="the-check"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onDelay();
-            }}
-            sx={({ palette }) => ({
-              display: "none", // hover才显示
-              ":hover": { bgcolor: alpha(palette.primary.main, 0.15) },
-            })}
-          >
-            Check
-          </Widget>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <Widget
+              className="the-check"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelay();
+              }}
+              sx={({ palette }) => ({
+                display: "none", // hover才显示
+                fontSize: "10px",
+                ":hover": { bgcolor: alpha(palette.primary.main, 0.15) },
+              })}
+            >
+              Delay
+            </Widget>
+            <Widget
+              className="the-speed-check"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSpeed();
+              }}
+              sx={({ palette }) => ({
+                display: "none", // hover才显示
+                fontSize: "10px",
+                ":hover": { bgcolor: alpha(palette.success.main, 0.15) },
+              })}
+            >
+              Speed
+            </Widget>
+          </Box>
         )}
 
-        {delay > 0 && (
-          // 显示延迟
-          <Widget
-            className="the-delay"
-            onClick={(e) => {
-              if (proxy.provider) return;
-              e.preventDefault();
-              e.stopPropagation();
-              onDelay();
-            }}
-            color={delayManager.formatDelayColor(delay, timeout)}
-            sx={({ palette }) =>
-              !proxy.provider
-                ? { ":hover": { bgcolor: alpha(palette.primary.main, 0.15) } }
-                : {}
-            }
-          >
-            {delayManager.formatDelay(delay, timeout)}
-          </Widget>
+        {(delay > 0 || speed > 0) && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: "2px", alignItems: "flex-start" }}>
+            {delay > 0 && (
+              // 显示延迟
+              <Widget
+                className="the-delay"
+                onClick={(e) => {
+                  if (proxy.provider) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelay();
+                }}
+                color={delayManager.formatDelayColor(delay, timeout)}
+                sx={({ palette }) =>
+                  !proxy.provider
+                    ? { 
+                        fontSize: "10px",
+                        ":hover": { bgcolor: alpha(palette.primary.main, 0.15) } 
+                      }
+                    : { fontSize: "10px" }
+                }
+              >
+                {delayManager.formatDelay(delay, timeout)}
+              </Widget>
+            )}
+
+            {speed > 0 && (
+              // 显示速度
+              <Widget
+                className="the-speed"
+                onClick={(e) => {
+                  if (proxy.provider) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSpeed();
+                }}
+                color={getSpeedColor(speed)}
+                sx={({ palette }) =>
+                  !proxy.provider
+                    ? { 
+                        fontSize: "10px",
+                        ":hover": { bgcolor: alpha(palette.success.main, 0.15) } 
+                      }
+                    : { fontSize: "10px" }
+                }
+              >
+                {formatSpeed(speed)}
+              </Widget>
+            )}
+          </Box>
         )}
         {delay !== -2 && delay <= 0 && selected && (
           // 展示已选择的icon

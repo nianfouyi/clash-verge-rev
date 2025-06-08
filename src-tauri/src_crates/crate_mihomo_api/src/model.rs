@@ -1,5 +1,5 @@
-use std::sync::{Arc, Mutex}; 
 use reqwest::header::HeaderMap;
+use std::sync::{Arc, Mutex};
 
 pub struct MihomoData {
     pub(crate) proxies: serde_json::Value,
@@ -25,5 +25,4 @@ impl Drop for MihomoManager {
     fn drop(&mut self) {
         println!("Dropping MihomoManager");
     }
-    
 }

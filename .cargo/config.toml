@@ -1,5 +1,18 @@
+[build]
+# 使用多核编译，设置为 CPU 核心数
+jobs = 10
+
 [target.aarch64-unknown-linux-gnu]
 linker = "aarch64-linux-gnu-gcc"
 
 [target.armv7-unknown-linux-gnueabihf]
 linker = "arm-linux-gnueabihf-gcc"
+
+# 优化编译器设置
+[env]
+# 设置 LLVM 并行度
+LLVM_PARALLEL_JOBS = "10"
+# 启用增量编译缓存
+CARGO_INCREMENTAL = "1"
+# 使用更多内存进行编译优化
+RUSTC_OPT_LEVEL = "0"

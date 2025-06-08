@@ -177,13 +177,13 @@ export async function cmdGetProxyDelay(
   );
 
   try {
-    name = encodeURIComponent(name);
+  name = encodeURIComponent(name);
     const result = await invoke<{ delay: number }>(
       "clash_api_get_proxy_delay",
       {
-        name,
+    name,
         url: testUrl, // 传递经过验证的URL
-        timeout,
+    timeout,
       },
     );
 
@@ -210,6 +210,18 @@ export async function cmdGetProxyDelay(
 
 export async function cmdTestDelay(url: string) {
   return invoke<number>("test_delay", { url });
+}
+
+export async function cmdTestDownloadSpeed(name: string) {
+  console.log(`[cmds] 准备调用后端命令: cmd_test_download_speed, 参数: ${name}`);
+  try {
+    const result = await invoke<number>("cmd_test_download_speed", { name });
+    console.log(`[cmds] 后端命令返回成功:`, result);
+    return result;
+  } catch (error) {
+    console.error(`[cmds] 后端命令调用失败:`, error);
+    throw error;
+  }
 }
 
 export async function invoke_uwp_tool() {

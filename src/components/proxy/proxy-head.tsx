@@ -13,6 +13,8 @@ import {
   WifiTetheringOffRounded,
   SortByAlphaRounded,
   SortRounded,
+  DownloadRounded,
+  SpeedRounded,
 } from "@mui/icons-material";
 import { useVerge } from "@/hooks/use-verge";
 import type { HeadState } from "./use-head-state";
@@ -26,6 +28,7 @@ interface Props {
   headState: HeadState;
   onLocation: () => void;
   onCheckDelay: () => void;
+  onCheckSpeed: () => void;
   onHeadState: (val: Partial<HeadState>) => void;
 }
 
@@ -84,17 +87,21 @@ export const ProxyHead = (props: Props) => {
         size="small"
         color="inherit"
         title={
-          [t("Sort by default"), t("Sort by delay"), t("Sort by name")][
-            sortType
-          ]
+          [
+            t("Sort by default"), 
+            t("Sort by delay"), 
+            t("Sort by name"),
+            t("Sort by speed")
+          ][sortType]
         }
         onClick={() =>
-          onHeadState({ sortType: ((sortType + 1) % 3) as ProxySortType })
+          onHeadState({ sortType: ((sortType + 1) % 4) as ProxySortType })
         }
       >
-        {sortType !== 1 && sortType !== 2 && <SortRounded />}
+        {sortType === 0 && <SortRounded />}
         {sortType === 1 && <AccessTimeRounded />}
         {sortType === 2 && <SortByAlphaRounded />}
+        {sortType === 3 && <SpeedRounded />}
       </IconButton>
 
       <IconButton
@@ -119,6 +126,18 @@ export const ProxyHead = (props: Props) => {
         onClick={() => onHeadState({ showType: !showType })}
       >
         {showType ? <VisibilityRounded /> : <VisibilityOffRounded />}
+      </IconButton>
+
+      <IconButton
+        size="small"
+        color="inherit"
+        title={t("Download speed test")}
+        onClick={() => {
+          console.log(`[ProxyHead] 点击下载速度测试按钮，组: ${groupName}`);
+          props.onCheckSpeed();
+        }}
+      >
+        <DownloadRounded />
       </IconButton>
 
       <IconButton

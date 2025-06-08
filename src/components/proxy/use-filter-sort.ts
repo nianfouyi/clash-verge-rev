@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import delayManager from "@/services/delay";
+import speedManager from "@/services/speed";
 
-// default | delay | alphabet
-export type ProxySortType = 0 | 1 | 2;
+// default | delay | alphabet | speed
+export type ProxySortType = 0 | 1 | 2 | 3;
 
 export default function useFilterSort(
   proxies: IProxyItem[],
@@ -24,8 +25,20 @@ export default function useFilterSort(
       }
     });
 
+    // 添加速度监听器
+    const speedListener = () => {
+      const now = Date.now();
+      if (now - last > 666) {
+        last = now;
+        setRefresh({});
+      }
+    };
+    
+    speedManager.addListener(speedListener);
+
     return () => {
       delayManager.removeGroupListener(groupName);
+      speedManager.removeListener(speedListener);
     };
   }, [groupName]);
 
@@ -108,6 +121,7 @@ function sortProxies(
   const list = proxies.slice();
 
   if (sortType === 1) {
+    // 按延迟排序
     list.sort((a, b) => {
       const ad = delayManager.getDelayFix(a, groupName);
       const bd = delayManager.getDelayFix(b, groupName);
@@ -117,8 +131,27 @@ function sortProxies(
 
       return ad - bd;
     });
-  } else {
+  } else if (sortType === 2) {
+    // 按名称排序
     list.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sortType === 3) {
+    // 按下载速度排序（速度快的排在前面）
+    list.sort((a, b) => {
+      const aSpeed = speedManager.getSpeedFix(a, groupName);
+      const bSpeed = speedManager.getSpeedFix(b, groupName);
+
+      // 处理特殊值：-2（固定节点）、-1（未测试）、0（错误）
+      if (aSpeed === -2 && bSpeed === -2) return 0;
+      if (aSpeed === -2) return -1; // 固定节点排在前面
+      if (bSpeed === -2) return 1;
+      
+      if (aSpeed <= 0 && bSpeed <= 0) return 0; // 都是未测试或错误
+      if (aSpeed <= 0) return 1; // 未测试的排在后面
+      if (bSpeed <= 0) return -1;
+
+      // 速度快的排在前面（降序）
+      return bSpeed - aSpeed;
+    });
   }
 
   return list;
