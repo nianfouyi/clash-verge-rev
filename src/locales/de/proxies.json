@@ -30,9 +30,11 @@
     "tooltips": {
       "locate": "Aktueller Knoten",
       "delayCheck": "Latenztest",
+      "speedTest": "Speed test",
       "sortDefault": "Standard Sortierung",
       "sortDelay": "Nach Latenz sortieren",
       "sortName": "Nach Name sortieren",
+      "sortSpeed": "Sort by speed",
       "delayCheckUrl": "Latenztest-URL",
       "showBasic": "Knotendetails ausblenden",
       "showDetail": "Knotendetails anzeigen",

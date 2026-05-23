@@ -30,9 +30,11 @@
     "tooltips": {
       "locate": "Урын",
       "delayCheck": "Задержканы тикшерү",
+      "speedTest": "Speed test",
       "sortDefault": "Башлангыч итеп сортлау",
       "sortDelay": "Задержка буенча сортлау",
       "sortName": "Исем буенча сортлау",
+      "sortSpeed": "Sort by speed",
       "delayCheckUrl": "Задержканы тикшерү URL-ы",
       "showBasic": "Прокси турында кыскача мәгълүмат",
       "showDetail": "Прокси турында тулы мәгълүмат",

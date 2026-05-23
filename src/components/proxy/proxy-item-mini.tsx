@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 
 import { BaseLoading } from '@/components/base'
 import { useProxyDelayState } from '@/hooks/use-proxy-delay-state'
+import { useProxySpeedState } from '@/hooks/use-proxy-speed-state'
 import delayManager from '@/services/delay'
+import speedManager from '@/services/speed'
 
 interface Props {
   group: IProxyGroupItem
@@ -25,6 +27,8 @@ export const ProxyItemMini = (props: Props) => {
     proxy,
     group.name,
   )
+
+  const { speedValue } = useProxySpeedState(proxy, group.name)
 
   return (
     <ListItemButton
@@ -146,6 +150,24 @@ export const ProxyItemMini = (props: Props) => {
             {proxy.smux && (
               <TypeBox color="text.secondary" component="span">
                 SMUX
+              </TypeBox>
+            )}
+            {speedValue === -2 && (
+              <TypeBox color="text.secondary" component="span">
+                <BaseLoading />
+              </TypeBox>
+            )}
+            {speedValue > 0 && (
+              <TypeBox
+                component="span"
+                sx={{ color: speedManager.formatSpeedColor(speedValue) }}
+              >
+                {speedManager.formatSpeed(speedValue)}
+              </TypeBox>
+            )}
+            {speedValue === 0 && (
+              <TypeBox component="span" sx={{ color: 'error.main' }}>
+                {speedManager.formatSpeed(speedValue)}
               </TypeBox>
             )}
           </Box>

@@ -30,9 +30,11 @@
     "tooltips": {
       "locate": "Местоположение",
       "delayCheck": "Проверка задержки",
+      "speedTest": "Speed test",
       "sortDefault": "Сортировать по умолчанию",
       "sortDelay": "Сортировать по задержке",
       "sortName": "Сортировать по названию",
+      "sortSpeed": "Sort by speed",
       "delayCheckUrl": "URL для проверки задержки",
       "showBasic": "Показывать меньше информации о прокси",
       "showDetail": "Показывать больше информации о прокси",

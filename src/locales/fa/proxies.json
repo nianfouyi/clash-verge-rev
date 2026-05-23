@@ -30,9 +30,11 @@
     "tooltips": {
       "locate": "موقعیت",
       "delayCheck": "بررسی تأخیر",
+      "speedTest": "Speed test",
       "sortDefault": "مرتب‌سازی بر اساس پیش‌فرض",
       "sortDelay": "مرتب‌سازی بر اساس تأخیر",
       "sortName": "مرتب‌سازی بر اساس نام",
+      "sortSpeed": "Sort by speed",
       "delayCheckUrl": "آدرس بررسی تأخیر",
       "showBasic": "پراکسی پایه",
       "showDetail": "جزئیات پراکسی",

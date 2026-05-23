@@ -481,6 +481,8 @@ export interface TranslationResources {
           sortDefault: string
           sortDelay: string
           sortName: string
+          sortSpeed: string
+          speedTest: string
         }
       }
     }

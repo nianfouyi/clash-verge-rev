@@ -34,6 +34,7 @@ import { useVerge } from '@/hooks/use-verge'
 import { useProxiesData } from '@/providers/app-data-context'
 import { calcuProxies, updateProxyChainConfigInRuntime } from '@/services/cmds'
 import delayManager from '@/services/delay'
+import speedManager from '@/services/speed'
 import { debugLog } from '@/utils/debug'
 
 import { ScrollTopButton } from '../layout/scroll-top-button'
@@ -440,6 +441,47 @@ export const ProxyGroups = (props: Props) => {
     }),
   )
 
+  // 测试全部下载速度
+  const handleSpeedTest = useStableCallback(
+    useLockFn(async (groupName: string) => {
+      debugLog(`[ProxyGroups] Start speed test, group: ${groupName}`)
+
+      const proxies = renderList
+        .filter(
+          (e) => e.group?.name === groupName && (e.type === 2 || e.type === 4),
+        )
+        .flatMap((e) => e.proxyCol || e.proxy!)
+        .filter(Boolean)
+
+      debugLog(`[ProxyGroups] Found proxies: ${proxies.length}`)
+
+      const names = proxies.filter((p) => !p!.provider).map((p) => p!.name)
+      debugLog(`[ProxyGroups] Proxies to test: ${names.length}`)
+
+      const url = speedManager.getUrl(groupName)
+      const speedTimeout = 30000 // 下载测速用 30 秒超时，非延迟测试的超时
+      debugLog(
+        `[ProxyGroups] Speed test URL: ${url}, timeout: ${speedTimeout}ms`,
+      )
+
+      try {
+        await speedManager.checkListSpeed(names, groupName, speedTimeout)
+        debugLog(`[ProxyGroups] Speed test done, group: ${groupName}`)
+      } catch (error) {
+        console.error(
+          `[ProxyGroups] Speed test error, group: ${groupName}`,
+          error,
+        )
+      } finally {
+        const headState = getGroupHeadState(groupName)
+        if (headState?.sortType === 3) {
+          onHeadState(groupName, { sortType: headState.sortType })
+        }
+        onProxies()
+      }
+    }),
+  )
+
   // 滚到对应的节点
   const handleLocation = useStableCallback((group: IProxyGroupItem) => {
     if (!group) return
@@ -491,6 +533,7 @@ export const ProxyGroups = (props: Props) => {
       measureElement={virtualizer.measureElement}
       onLocation={handleLocation}
       onCheckAll={handleCheckAll}
+      onSpeedTest={handleSpeedTest}
       onHeadState={onHeadState}
       onChangeProxy={handleChangeProxy}
     />
@@ -602,6 +645,7 @@ interface ProxyVirtualListProps {
   measureElement: (node: Element | null) => void
   onLocation: (group: IRenderItem['group']) => void
   onCheckAll: (groupName: string) => void
+  onSpeedTest: (groupName: string) => void
   onHeadState: (groupName: string, patch: Partial<HeadState>) => void
   onChangeProxy: (
     group: IRenderItem['group'],
@@ -766,6 +810,7 @@ function ProxyVirtualList({
   measureElement,
   onLocation,
   onCheckAll,
+  onSpeedTest,
   onHeadState,
   onChangeProxy,
 }: ProxyVirtualListProps) {
@@ -807,6 +852,7 @@ function ProxyVirtualList({
               indent={indent}
               onLocation={onLocation}
               onCheckAll={onCheckAll}
+              onSpeedTest={onSpeedTest}
               onHeadState={onHeadState}
               onChangeProxy={onChangeProxy}
               isChainMode={isChainMode}

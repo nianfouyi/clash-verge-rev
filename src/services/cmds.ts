@@ -382,6 +382,14 @@ export async function cmdTestDelay(url: string) {
   return invoke<number>('test_delay', { url })
 }
 
+export async function cmdTestProxySpeed(
+  name: string,
+  url: string,
+  timeout: number,
+) {
+  return invoke<number>('test_proxy_speed', { name, url, timeout })
+}
+
 export async function invoke_uwp_tool() {
   return invoke<void>('invoke_uwp_tool').catch((err) =>
     showNotice.error(err, 1500),

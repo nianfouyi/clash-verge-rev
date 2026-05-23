@@ -2,10 +2,11 @@ import { useEffect, useMemo, useReducer, useRef } from 'react'
 
 import { useVerge } from '@/hooks/use-verge'
 import delayManager from '@/services/delay'
+import speedManager from '@/services/speed'
 import { compileStringMatcher } from '@/utils/search-matcher'
 
-// default | delay | alphabet
-export type ProxySortType = 0 | 1 | 2
+// default | delay | alphabet | speed
+export type ProxySortType = 0 | 1 | 2 | 3
 
 export type ProxySearchState = {
   matchCase?: boolean
@@ -30,17 +31,20 @@ export default function useFilterSort(
   useEffect(() => {
     let last = 0
 
-    delayManager.setGroupListener(groupName, () => {
-      // 简单节流
+    const throttledRefresh = () => {
       const now = Date.now()
       if (now - last > 666) {
         last = now
         bumpRefresh()
       }
-    })
+    }
+
+    delayManager.setGroupListener(groupName, throttledRefresh)
+    speedManager.setGroupListener(groupName, throttledRefresh)
 
     return () => {
       delayManager.removeGroupListener(groupName)
+      speedManager.removeGroupListener(groupName)
     }
   }, [groupName])
 
@@ -210,6 +214,28 @@ function sortProxies(
 
       if (ar !== br) return ar - br
       return av - bv
+    })
+  } else if (sortType === 3) {
+    // 按下载速度排序：速度快的排前面
+    list.sort((a, b) => {
+      const as = speedManager.getSpeed(a.name, groupName)
+      const bs = speedManager.getSpeed(b.name, groupName)
+
+      // 测试中 (-2) 排最前面（正在出结果）
+      if (as === -2 && bs !== -2) return -1
+      if (bs === -2 && as !== -2) return 1
+
+      // 有实际速度的排在前面
+      const aHasSpeed = as > 0
+      const bHasSpeed = bs > 0
+      if (aHasSpeed && !bHasSpeed) return -1
+      if (!aHasSpeed && bHasSpeed) return 1
+
+      // 都有速度：降序（快的在前）
+      if (aHasSpeed && bHasSpeed) return bs - as
+
+      // 都没速度：保持原序
+      return 0
     })
   } else {
     list.sort((a, b) => a.name.localeCompare(b.name))
