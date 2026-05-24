@@ -4,6 +4,7 @@ import { useRuntimeConfig } from '@/hooks/use-clash'
 import { useVerge } from '@/hooks/use-verge'
 import { useAppRefreshers, useProxiesData } from '@/providers/app-data-context'
 import delayManager from '@/services/delay'
+import speedManager from '@/services/speed'
 import { debugLog } from '@/utils/debug'
 
 import { filterSort } from './use-filter-sort'
@@ -181,6 +182,7 @@ export const useRenderList = (
 
   const groupCacheRef = useRef<Map<string, GroupCache>>(new Map())
   const prevListRef = useRef<IRenderItem[]>([])
+  const realNowRef = useRef<Map<string, string>>(new Map())
 
   // 处理渲染列表
   const renderList: IRenderItem[] = useMemo(() => {
@@ -388,6 +390,19 @@ export const useRenderList = (
     let anyChanged = false
 
     const retList = renderGroups.flatMap((group: ProxyGroup) => {
+      // Override group.now during speed tests to prevent UI flicker.
+      // The Rust side temporarily switches nodes for testing; we keep
+      // showing the real selection so the user doesn't see it change.
+      const realNow = realNowRef.current
+      if (speedManager.isGroupTesting(group.name)) {
+        const saved = realNow.get(group.name)
+        if (saved !== undefined) {
+          group = { ...group, now: saved }
+        }
+      } else {
+        realNow.set(group.name, group.now)
+      }
+
       const headState = headStates[group.name] || DEFAULT_STATE
       const cached = cache.get(group.name)
 

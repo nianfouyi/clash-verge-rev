@@ -15,6 +15,7 @@ const DEFAULT_TIMEOUT = 30000
 class SpeedManager {
   private cache = new Map<string, SpeedUpdate>()
   private urlMap = new Map<string, string>()
+  private testingGroups = new Set<string>()
 
   private listenerMap = new Map<string, (update: SpeedUpdate) => void>()
   private groupListenerMap = new Map<string, () => void>()
@@ -99,6 +100,10 @@ class SpeedManager {
       `[SpeedManager] Set speed test URL for group: ${group}, URL: ${url}`,
     )
     this.urlMap.set(group, url)
+  }
+
+  isGroupTesting(group: string): boolean {
+    return this.testingGroups.has(group)
   }
 
   getUrl(group: string) {
@@ -188,7 +193,7 @@ class SpeedManager {
       const url = this.getUrl(group)
       debugLog(`[SpeedManager] Testing speed, proxy: ${name}, URL: ${url}`)
 
-      const speed = await cmdTestProxySpeed(name, url, timeout)
+      const speed = await cmdTestProxySpeed(name, group, url, timeout)
 
       // Ensure minimum 500ms loading animation
       const elapsedTime = Date.now() - startTime
@@ -211,13 +216,15 @@ class SpeedManager {
     nameList: string[],
     group: string,
     timeout: number = DEFAULT_TIMEOUT,
-    concurrency = 3,
+    concurrency = 1,
   ) {
     debugLog(
       `[SpeedManager] Batch speed test start, group: ${group}, count: ${nameList.length}, concurrency: ${concurrency}`,
     )
     const names = nameList.filter(Boolean)
     names.forEach((name) => this.setSpeed(name, group, -2))
+
+    this.testingGroups.add(group)
 
     let index = 0
     const startTime = Date.now()
@@ -228,8 +235,6 @@ class SpeedManager {
       if (!currName) return
 
       try {
-        this.setSpeed(currName, group, -2)
-
         // Add random delay between requests (except first)
         if (index > 1) {
           await new Promise((resolve) =>
@@ -252,7 +257,7 @@ class SpeedManager {
       return help()
     }
 
-    const actualConcurrency = Math.min(concurrency, names.length, 3)
+    const actualConcurrency = Math.min(concurrency, names.length, 1)
     debugLog(`[SpeedManager] Actual concurrency: ${actualConcurrency}`)
 
     const promiseList: Promise<void>[] = []
@@ -260,7 +265,19 @@ class SpeedManager {
       promiseList.push(help())
     }
 
-    await Promise.all(promiseList)
+    try {
+      await Promise.all(promiseList)
+    } finally {
+      this.testingGroups.delete(group)
+      // Clean up any -2 entries that were never actually tested
+      for (const name of names) {
+        const key = hashKey(name, group)
+        const entry = this.cache.get(key)
+        if (entry && entry.speed === -2) {
+          this.cache.set(key, { speed: 0, updatedAt: Date.now() })
+        }
+      }
+    }
     const totalTime = Date.now() - startTime
     debugLog(
       `[SpeedManager] Batch speed test done, group: ${group}, total time: ${totalTime}ms`,

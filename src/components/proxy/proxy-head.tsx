@@ -3,6 +3,7 @@ import {
   MyLocationRounded,
   NetworkCheckRounded,
   SpeedRounded,
+  BoltRounded,
   FilterAltRounded,
   FilterAltOffRounded,
   VisibilityRounded,
@@ -131,7 +132,7 @@ export const ProxyHead = ({
         {sortType === 0 && <SortRounded />}
         {sortType === 1 && <AccessTimeRounded />}
         {sortType === 2 && <SortByAlphaRounded />}
-        {sortType === 3 && <SpeedRounded />}
+        {sortType === 3 && <BoltRounded />}
       </IconButton>
 
       <IconButton

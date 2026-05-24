@@ -384,10 +384,11 @@ export async function cmdTestDelay(url: string) {
 
 export async function cmdTestProxySpeed(
   name: string,
+  group: string,
   url: string,
   timeout: number,
 ) {
-  return invoke<number>('test_proxy_speed', { name, url, timeout })
+  return invoke<number>('test_proxy_speed', { name, group, url, timeout })
 }
 
 export async function invoke_uwp_tool() {

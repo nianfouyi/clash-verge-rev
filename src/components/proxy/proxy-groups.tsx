@@ -12,6 +12,7 @@ import {
 import { useTheme } from '@mui/material/styles'
 import { useQuery } from '@tanstack/react-query'
 import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
+import { listen } from '@tauri-apps/api/event'
 import { useLockFn } from 'ahooks'
 import {
   type Key,
@@ -481,6 +482,77 @@ export const ProxyGroups = (props: Props) => {
       }
     }),
   )
+
+  // 切换订阅后自动测速第一个分组
+  const autoSpeedTestRunningRef = useRef(false)
+  const autoSpeedTestPendingRef = useRef(false)
+
+  const runAutoSpeedTest = useStableCallback(async () => {
+    if (autoSpeedTestRunningRef.current) {
+      // 正在测速时收到新事件，标记需要重测，等当前完成后执行
+      autoSpeedTestPendingRef.current = true
+      return
+    }
+    autoSpeedTestRunningRef.current = true
+
+    try {
+      // 等待代理数据加载完成
+      await new Promise((r) => setTimeout(r, 3000))
+
+      const firstGroup = proxiesData?.groups?.[0]
+      if (!firstGroup) {
+        debugLog('[AutoSpeed] No groups available for auto speed test')
+        return
+      }
+
+      debugLog(
+        `[AutoSpeed] Auto speed test triggered for first group: ${firstGroup.name}`,
+      )
+
+      // 直接从 proxiesData 取节点名，不依赖 renderList（避免组件未渲染时为空）
+      const names = firstGroup.all
+        .filter((p: any) => p && !p.provider)
+        .map((p: any) => p.name)
+
+      if (names.length === 0) {
+        debugLog('[AutoSpeed] No proxy names to test')
+        return
+      }
+
+      try {
+        await speedManager.checkListSpeed(names, firstGroup.name, 30000)
+        debugLog(`[AutoSpeed] Auto speed test done for: ${firstGroup.name}`)
+      } catch (error) {
+        console.error('[AutoSpeed] Auto speed test error:', error)
+      }
+    } finally {
+      autoSpeedTestRunningRef.current = false
+      // 如果测速期间又有新事件到达，重新触发
+      if (autoSpeedTestPendingRef.current) {
+        autoSpeedTestPendingRef.current = false
+        runAutoSpeedTest()
+      }
+    }
+  })
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined
+
+    const setup = async () => {
+      try {
+        const unlisten = await listen<string>('profile-changed', () => {
+          debugLog('[AutoSpeed] profile-changed event received')
+          runAutoSpeedTest()
+        })
+        cleanup = unlisten
+      } catch (error) {
+        console.error('[AutoSpeed] Failed to listen profile-changed:', error)
+      }
+    }
+
+    setup()
+    return () => cleanup?.()
+  }, [runAutoSpeedTest])
 
   // 滚到对应的节点
   const handleLocation = useStableCallback((group: IProxyGroupItem) => {
